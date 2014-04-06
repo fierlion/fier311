@@ -1,0 +1,63 @@
+﻿Ray Foote
+footer@onid.oregonstate.edu
+CS311_400
+Homework #1 text (Parts 2, 3, 4, 5)
+
+Part 2
+
+Revision Control Systems are systems which manage changes to documents, computer programs, large websites and other collections of information.
+(http://en.wikipedia.org/wiki/Revision_control)
+RVCs are useful in software engineering because several programmers might be working on the same project at once and they will each have their own version of the code they are working on.  Bugs will only show up in some of these versions so it is useful (actually it is necessary) to have backups or alternate versions of each.  
+RCS
+the GNU project’s Revision Control System.  
+Common commands (from the GNU RCS web documentation):
+‘ci’: (checkin) records the contents of the working file in the RCS file.
+‘co’: (checkout) identifies a specific revision from the RCS file and either displays the content to standard output or instantiates a working file.
+‘rcsdiff’: tells you the difference between the most recently checked-in version and the working file.
+SCCS
+Source Code Control System.  Now considered obsolete, this was dominant until RCS was released.
+Common commands (from the sccs unix man page):
+‘check’ [-b] [-u [username] | -U ]:  Check for files currently being edited. 
+‘delta’ [-s] [-y[comment]]:  Check  in  pending  changes.  Records  the  line-by-line changes  introduced  while the file was checked out. 
+‘edit’: Retrieve a version of the file for editing
+Mercurial
+is a cross-platform, distributed revision control tool for software developers. It is mainly implemented using the Python programming language, but includes a binary diff implementation written in C.
+All of Mercurial's operations are invoked as arguments to its driver program hg, a reference to the chemical symbol of the element Mercury (http://en.wikipedia.org/wiki/Mercurial_%28software%29)
+Common commands (from http://mercurial.selenic.com/):
+‘hg clone’: gets (clones) a copy of a specified repository
+‘hg add (new files)’: stages the new or edited files
+‘hg commit -m “My changes”’: saves the changes to the main repository (adds them to the tree).
+Git
+(SCM) system with an emphasis on speed.  Git was initially designed and developed by Linus Torvalds for Linux kernel development in 2005.
+Common commands:
+‘git init’: creates a subdirectory .git which contains all repository files.
+‘git add’: adds the named files to the .git repository stage
+‘git commit’: commits the staged files to the data structure.
+
+Part 3
+
+UNIX redirection vs piping
+"Pipe is used to pass output to another program or utility.
+Redirect is used to pass output to either a file or a stream."
+thing1 > thing2
+The shell runs the thing1 program and its outputs are put into thing 2.  If there is something in thing2 this will overwrite it.
+vs
+thing1 > temp_file && thing2 < temp_file
+The shell runs the thing 1 program then saves its outputs in the temp_file, then it runs the thing2 program with the temp_file as input.  
+The second example is what a pipe does.
+(from http://askubuntu.com/questions/172982/what-is-the-difference-between-redirection-and-pipe)
+
+So redirection allows the user to pass the output into files (>), or append the output to files (>>) and piping allows the user to pass the output of one command to another for further processing.
+(from http://www.westwind.com/reference/os-x/commandline/pipes.html)
+
+Part 4
+
+find / -type f -exec file '{}' +
+
+Part 5
+
+Make is used to specify dependencies between components, so that it will compile components in the order required to satisfy dependencies.  This is especialy important when a project is recompiled after a few changes.  It will only recompile the files which are changed, saving mega-time.  
+Each project has a Makefile which is a script that describes the project structure--the source code files the dependencies between them, the compiler arguments and how to produce the target output (some form of executable usually).
+http://www.opensourceforu.com/2012/06/gnu-make-in-detail-for-beginners/
+
+
