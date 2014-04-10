@@ -77,6 +77,11 @@ def mkdir(argsIn):
             subprocess.call(["mkdir", "exams"])
             subprocess.call(["mkdir", "lecture_notes"])
             subprocess.call(["mkdir", "submissions"])
+            subprocess.call(["ln", "-s", 
+                             "/usr/local/classes/eecs/spring2014/cs311/src/README",
+                             "README"])
+            subprocess.call(["ln", "-s",
+                             "/usr/local/classes/eecs/spring2014/cs311/src", "src_class"])
 
 if __name__=="__main__":
     sys.exit(main())
