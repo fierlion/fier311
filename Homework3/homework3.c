@@ -3,107 +3,89 @@
 //CS311_400
 //Homework 3
 
-//This program opens a file -f, seeks to the offset location -o, reads length -l 
-//bytes from the file and writes those to the console, then seeks to -O offset2 
-//relative to the current position, then again reads length -l bytes from the file
-//and writes those bytes to the console.  It then read -e elen bytes from the 
-//end of the file and prints them to the console.  
+//This program seeks various locations in a UNIX file
+//usage: -f filename, -o offset, -l len, -O offset2, -e elen
+//the program will open a file in the system, seek to the offset location
+//read len number of bytes and write those to the console newline terminated.
+//then it will seek the value -O relative to the current position in the file,
+//read len (above) number of bytes and print those to the console newline
+//terminated.  Finally it will print elen number of bytes from the end of 
+//the file and write them to the console newline terminated.
+//preconditions: values for len, offset, offset2, elen > 10000 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <getopt.h>
-#include <sys/utsname.h>
-#include <time.h>
-#include <sys/stat.h>
-#include <ctype.h>
 #include <fcntl.h>
+#include <sys/types.h>
 
-#define BLOCKSIZE 1;
+int main(int argc, char **argv){
+  //getopt
+  int c;  
+  extern char *optarg;
+  extern int optind, optopt, opterr;
+  //opt specific
+  char *ifile;
+  int offset1, offset2;
+  int len;
+  int elen;
+  //open()
+  int ofile;
+  //read()
+  char buffer[10000]; 
 
-int main(int argc, char **argv) {
-  int c;
-  int n;
-  char *cvalue = NULL;
-  char namePtr[32];
-  char *input;
-  char *output;
-  int inFd = 0;
-  int outFd;
-  char buf [1];
-
-  int numRead;
-  int numWritten;
-  int copied;
-  int fileSize;
-
-  opterr = 0;
-
-  while((c = getopt (argc, argv, "f:o:l:O:e:")) != -1)
-    switch (c) {
+  //get command line args, any order, store in variables
+  while ((c = getopt(argc, argv, ":f:o:l:O:e:")) != -1){
+    switch(c){
     case 'f':
-      inFd = open(optarg, O_RDONLY);
-      if (inFd == -1){
-	perror("can't open input file");
-	exit(EXIT_FAILURE);
-      }
-      if (read(inFd, buf, 1) != 1){
-	perror("Can't read file");
-	exit(EXIT_FAILURE);
-      }
-      printf("%s\n", buf);
+      ifile = optarg;
       break;
     case 'o':
+      offset1 = atoi(optarg);
       break;
     case 'l':
-      //cvalue = optarg;                                                                    
-      //if(stat(optarg, &s) < 0)
-      //return 1;
-      //printf("File size: %d bytes\n", s.st_size);
+      len = atoi(optarg);
       break;
+    case 'O':
+      offset2 = atoi(optarg);
+      break;
+    case 'e':
+      elen = atoi(optarg);
+      break;
+    case ':':             // -folOe without operand
+      printf("-%c needs an optarg\n", optopt);
+      exit(EXIT_FAILURE);
     case '?':
-      if (optopt == 'c')
-	fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-      else if (isprint (optopt))
-	fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-      else
-	fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
-      return 1;
-    default:
-      abort ();
-  }
-  return 0;
-}
-
-      /*
-return 0;
-}
-  in_fd = open(input, O_RDONLY);
-  if (in_fd == -1) {
-    perror("Can't open input file");
-    exit(-1);
-  }
-
-  out_fd = open(output, O_CREAT | O_WRONLY, 0777);
-  if (out_fd == -1) {
-    perror("Can't open/create file");
-    exit(-1);
-  }
-
-  file_size = lseek(in_fd, -1, SEEK_END) + 1;     //need +1 because lseek is a byte shy
-
-  while (copied < file_size) {
-    num_read = read(in_fd, buf, BLOCKSIZE);
-    num_written = write(out_fd, buf, BLOCKSIZE);
-
-    if (num_written != num_read) {
-      perror("error writing file");
-      unlink(output);
-      exit(-1);
+      printf("unkown arg %c\n", optopt);
+      exit(EXIT_FAILURE);
     }
-
-    copied += num_written;
-    
-    lseek(in_fd, -2, SEEK_CUR);  //one step forward two steps back--read moved forward
   }
-      */
+
+  printf("-f: %s, -o: %i, -l: %i, -O: %i, -e: %i\n", ifile, offset1,
+	 len, offset2, elen);
+
+  //open ifile
+  ofile = open(ifile, O_RDONLY);
+  if (ofile < 0){
+    printf("unable to open %s\n", ifile);
+    exit(EXIT_FAILURE);
+  }
+  
+  printf("file open: %i\n", ofile);
+
+  //read ofile
+  if (read(ofile, buffer, len) != len){
+    printf("read %s for %i chars failed\n", ifile, len);
+  }
+  printf("%s\n", buffer);
+
+  if (lseek(ofile, offset1, SEEK_SET) < 0){
+    printf("lseek for %i offset1 failed\n", offset1);
+  }
+  if (read(ofile, buffer, len) != len) {
+    printf("read %s for %i chars failed\n", ifile, len);
+  }
+  printf("%s\n", buffer);
+
+  exit(EXIT_SUCCESS);
+}
