@@ -19,8 +19,9 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <string.h>
 
-#define BLOCKSIZE 1
+#define BLOCKSIZE 10000
 
 
 int main(int argc, char **argv){
@@ -40,12 +41,11 @@ int main(int argc, char **argv){
   char buf[BLOCKSIZE];
   int numRead;
   int numWrit;
-  int count;
   //lseek()
   int newPos;
 
   //get command line args, any order, store in variables
-  while ((c = getopt(argc, argv, ":f:o:l:O:e:")) != -1){
+  while ((c = getopt(argc, argv, ":f:o:l:O:e:v")) != -1){
     switch(c){
     case 'f':
       input = optarg;
@@ -62,6 +62,10 @@ int main(int argc, char **argv){
     case 'e':
       elen = atoi(optarg);
       break;
+    case 'v':
+      printf("./homework3 -f %s -o %i -l %i -O %i -e %i\n", 
+	     input, offset1, len, offset2, elen);
+      break;
     case ':':             // -folOe without operand
       printf("-%c needs an optarg\n", optopt);
       exit(EXIT_FAILURE);
@@ -70,7 +74,7 @@ int main(int argc, char **argv){
       exit(EXIT_FAILURE);
     }
   }
-
+  printf("\n");
   //open input
   fd = open(input, O_RDONLY);
   if (fd == -1){
@@ -78,21 +82,38 @@ int main(int argc, char **argv){
     exit(EXIT_FAILURE);
   }
   
-  newPos = lseek(fd, offset1, SEEK_SET);
-  
+  //seek offset1
+  newPos = lseek(fd, offset1, SEEK_SET);  
   printf("<offset 1>--------------------\n");
-  while (((numRead = read(fd, buf, BLOCKSIZE)) > 0) && (count <= len)){ 
-    numWrit = printf("%c", *buf);
-    count +=1;
-
-    if (numWrit != numRead){
-      perror("Error reading file");
+  if ((numRead = read(fd, buf, len)) > 0){
+    if (write(1, buf, len) != len){
       exit(EXIT_FAILURE);
     }
   }
-  printf("%c", '\n');
+  printf("\n");
 
+  if (offset2 != 0){
+    //seek offset2
+    newPos = lseek(fd, offset2, SEEK_CUR);
+    printf("<offset 2>--------------------\n");
+    memset(buf, 0, BLOCKSIZE);  //reset buffer
+    if ((numRead = read(fd, buf, len)) > 0){
+      if (write(1, buf, len) != len){
+	exit(EXIT_FAILURE);
+      }
+    }
+  printf("\n");
+  }
 
-
+  if (elen != 0){
+    //seek elen bytes before end of file)
+    newPos = lseek(fd, -elen, SEEK_END);
+    printf("<end bytes>-------------------\n");
+    memset(buf, 0, BLOCKSIZE);  //reset buffer
+    if ((numRead = read(fd, buf, elen)) > 0){
+      numWrit = write(1, buf, elen);
+    }
+  }
+  printf("------------------------------\n");
   exit(EXIT_SUCCESS);
 }
