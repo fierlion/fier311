@@ -18,27 +18,37 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <errno.h>
+
+#define BLOCKSIZE 1
+
 
 int main(int argc, char **argv){
   //getopt
-  int c;  
+  int c = 0;  
   extern char *optarg;
   extern int optind, optopt, opterr;
   //opt specific
-  char *ifile;
-  int offset1, offset2;
-  int len;
-  int elen;
+  char *input;
+  int offset1 = 0;
+  int offset2 = 0;
+  int len = 0;
+  int elen = 0;
   //open()
-  int ofile;
+  int fd;
   //read()
-  char buffer[10000]; 
+  char buf[BLOCKSIZE];
+  int numRead;
+  int numWrit;
+  int count;
+  //lseek()
+  int newPos;
 
   //get command line args, any order, store in variables
   while ((c = getopt(argc, argv, ":f:o:l:O:e:")) != -1){
     switch(c){
     case 'f':
-      ifile = optarg;
+      input = optarg;
       break;
     case 'o':
       offset1 = atoi(optarg);
@@ -61,31 +71,28 @@ int main(int argc, char **argv){
     }
   }
 
-  printf("-f: %s, -o: %i, -l: %i, -O: %i, -e: %i\n", ifile, offset1,
-	 len, offset2, elen);
-
-  //open ifile
-  ofile = open(ifile, O_RDONLY);
-  if (ofile < 0){
-    printf("unable to open %s\n", ifile);
+  //open input
+  fd = open(input, O_RDONLY);
+  if (fd == -1){
+    perror("Can't open input file");
     exit(EXIT_FAILURE);
   }
   
-  printf("file open: %i\n", ofile);
+  newPos = lseek(fd, offset1, SEEK_SET);
+  
+  printf("<offset 1>--------------------\n");
+  while (((numRead = read(fd, buf, BLOCKSIZE)) > 0) && (count <= len)){ 
+    numWrit = printf("%c", *buf);
+    count +=1;
 
-  //read ofile
-  if (read(ofile, buffer, len) != len){
-    printf("read %s for %i chars failed\n", ifile, len);
+    if (numWrit != numRead){
+      perror("Error reading file");
+      exit(EXIT_FAILURE);
+    }
   }
-  printf("%s\n", buffer);
+  printf("%c", '\n');
 
-  if (lseek(ofile, offset1, SEEK_SET) < 0){
-    printf("lseek for %i offset1 failed\n", offset1);
-  }
-  if (read(ofile, buffer, len) != len) {
-    printf("read %s for %i chars failed\n", ifile, len);
-  }
-  printf("%s\n", buffer);
+
 
   exit(EXIT_SUCCESS);
 }
