@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <string.h>
+#include <getopt.h>
 
 #define BLOCKSIZE 1            //text files have a blocksize of 1
 
@@ -30,22 +31,14 @@ int main(int argc, char **argv){
   void openAdd(char* fileOpenAdd, char *fileOut);
   
   opterr = 0;
-  while ((c = getopt(argc, argv, "q::x::tvd::A")) != -1)
+  while ((c = getopt(argc, argv, "q:x:tvd:A")) != -1)
     switch(c){
       case 'q':                  //append named files to .a, if no members create empty .a file
-        if (optarg){
-	  input = optarg;
-	  openAdd(input, output);
-	}
-	else
-	  printf("-q\n");
+        input = optarg;
+	openAdd(input, output);
         break;
       case 'x':                  //extract (copy out) named members, if no arg, extract all
-        if (optarg)
-	  printf("-x: %s\n", optarg);
-        else
-	 //extract all
-	  printf("x\n");
+	printf("-x: %s\n", optarg);
         break;                   
       case 't':                  //print a concise table of .a contents
         printf("t\n");      
@@ -53,15 +46,25 @@ int main(int argc, char **argv){
       case 'v':                  //print a verbose table
         printf("v\n");
         break;
-      case 'd':                  //delete named files from .a, if no arg nothing happens
-        if (optarg)
-          printf("-d: %s\n", optarg);
+      case 'd':                  //delete named files from .a, if no arg nothing happens 
+        printf("-d: %s\n", optarg);
         break;
       case 'A':                  //append all regular files in current dir, (except .a)
         printf("A\n");
         break;
       case '?':
-        printf("Unknown option\n");
+        if(optopt == 'q'){
+	  printf("-q no arg\n");
+	  //create empty file
+	}  
+	else if (optopt == 'x'){
+	  printf("-x no arg\n");
+	  //extract all
+	}
+	else if (optopt == 'd')
+	  break;
+	else
+	  fprintf(stderr, "Unknown option -%c\n", optopt);
         break;
       default:
         printUse();
