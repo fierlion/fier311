@@ -6,31 +6,37 @@
 //This program illustrates the use of file I/O by managing a UNIX archive library
 //in the standard archive format.
 
+#define _GNU_SOURCE
+#define _BSD_SOURCE
+#define _SVID_SOURCE
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
 #include <string.h>
 #include <getopt.h>
 
 #define BLOCKSIZE 1            //text files have a blocksize of 1
-
 
 int main(int argc, char **argv){
   int c;
 
   int getopt(int argc, char * const argv[], const char *opstring);
   extern char *optarg;
-  extern int optind, opterr, optopt;         //disable invalid options
+  extern int optind, opterr, optopt;
   char *input;
-  char *output = "out.a";
+  char *output = argv[1];
 
   void printUse();
-  void openAdd(char* fileOpenAdd, char *fileOut);
+  void openAdd(char* fileIn, char *fileOut);
+  void printStat(char* fileIn);
   
-  opterr = 0;
+  opterr = 0;                    //diable invalid options
   while ((c = getopt(argc, argv, "q:x:tvd:A")) != -1)
     switch(c){
       case 'q':                  //append named files to .a, if no members create empty .a file
@@ -45,6 +51,7 @@ int main(int argc, char **argv){
         break;
       case 'v':                  //print a verbose table
         printf("v\n");
+	printStat(output);
         break;
       case 'd':                  //delete named files from .a, if no arg nothing happens 
         printf("-d: %s\n", optarg);
@@ -81,8 +88,8 @@ void printUse(){
   return;
 }
 
- void openAdd(char *fileOpenAdd, char *fileOut){
-   char *input = fileOpenAdd;
+ void openAdd(char *fileIn, char *fileOut){
+   char *input = fileIn;
    char *output = fileOut;
    
    int in_fd;
@@ -117,3 +124,45 @@ void printUse(){
   return;
 }
   
+void printStat(char* fileIn){
+  struct stat sb;
+
+  if (stat(fileIn, &sb) == -1){
+    perror("stat");
+    exit(EXIT_FAILURE);
+  }
+
+  printf("protection %o\n", sb.st_mode);   
+  switch (sb.st_mode & S_IFMT) {
+    case S_IFBLK:  printf("block device\n");            break;
+    case S_IFCHR:  printf("character device\n");        break;
+    case S_IFDIR:  printf("directory\n");               break;
+    case S_IFIFO:  printf("FIFO/pipe\n");               break;
+    case S_IFLNK:  printf("symlink\n");                 break;
+    case S_IFREG:  printf("regular file\n");            break;
+    case S_IFSOCK: printf("socket\n");                  break;
+    default:       printf("unknown?\n");                break;
+    }
+
+    printf("I-node number:            %ld\n", (long) sb.st_ino);
+
+    printf("Mode:                     %lo (octal)\n",
+	   (unsigned long) sb.st_mode);
+
+    printf("Link count:               %ld\n", (long) sb.st_nlink);
+    printf("Ownership:                UID=%ld   GID=%ld\n",
+	   (long) sb.st_uid, (long) sb.st_gid);
+
+    printf("Preferred I/O block size: %ld bytes\n",
+	   (long) sb.st_blksize);
+    printf("File size:                %lld bytes\n",
+	   (long long) sb.st_size);
+    printf("Blocks allocated:         %lld\n",
+	   (long long) sb.st_blocks);
+
+    printf("Last status change:       %s", ctime(&sb.st_ctime));
+    printf("Last file access:         %s", ctime(&sb.st_atime));
+    printf("Last file modification:   %s", ctime(&sb.st_mtime));
+
+  return;
+}
