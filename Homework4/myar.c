@@ -37,14 +37,15 @@ struct ar_hdr{
   char ar_size[10];
   };
 
-//http://www.johnloomis.org/ece537/notes/Files/Examples/ls2.html
 //modified following two functions from this website
+//http://www.johnloomis.org/ece537/notes/Files/Examples/ls2.html
 void showFileInfo(char*, struct stat*);
 void modeToLetters(int, char[]);
  
 void printUse();
 void openAdd(char* fileIn, char *fileOut);
 struct ar_hdr* getStat(char* fileIn);
+void printStat(char* fileIn);
 
 
 int main(int argc, char **argv){
@@ -66,8 +67,13 @@ int main(int argc, char **argv){
   while ((c = getopt(argc, argv, "q:x:tvd:A")) != -1)
     switch(c){
       case 'q':                  //append named files to .a, if no members create empty .a file
-        input = optarg;
-	openAdd(input, output);
+	optind--;
+	for ( ;optind < argc && *argv[optind] != '-'; optind++){
+	  openAdd(argv[optind], output);
+	}
+
+	//input = optarg;
+	//openAdd(input, output);
         break;
       case 'x':                  //extract (copy out) named members, if no arg, extract all
 	printf("-x: %s\n", optarg);
@@ -77,7 +83,7 @@ int main(int argc, char **argv){
         break;
       case 'v':                  //print a verbose table
         printf("v\n");
-	fileDeets = getStat(output);
+	printStat(output);
         break;
       case 'd':                  //delete named files from .a, if no arg nothing happens 
         printf("-d: %s\n", optarg);
@@ -122,6 +128,7 @@ void printUse(){
    int out_fd;
 
    char buf[BLOCKSIZE];
+
    
    int num_read;
    int num_written;
@@ -137,7 +144,10 @@ void printUse(){
     perror("Can't open/create output file");
     exit(EXIT_FAILURE);
   }
-  
+  lseek(out_fd, -1, SEEK_END);
+
+  //put in write permissions here
+  write(out_fd, ARFMAG, SARFMAG); 
   while((num_read = read(in_fd, buf, BLOCKSIZE)) > 0){
     num_written = write(out_fd, buf, BLOCKSIZE);
 
@@ -163,6 +173,16 @@ struct ar_hdr* getStat(char* fileIn){
     showFileInfo(fileIn, &sb);
 
   return fileDeetsOut;
+}
+
+void printStat(char* fileIn){
+  struct stat sb;
+  if (stat(fileIn, &sb) == -1){
+    perror("stat");
+    exit(EXIT_FAILURE);
+  }
+  else
+    showFileInfo(fileIn, &sb);
 }
 
 void showFileInfo(char *filename, struct stat *info_p){
