@@ -10,6 +10,11 @@
 #define _BSD_SOURCE
 #define _SVID_SOURCE
 
+#define ARMAG "!<arch>\n"
+#define SARMAG 8
+#define ARFMAG "`\n"
+#define SARFMAG 2
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,8 +25,27 @@
 #include <time.h>
 #include <string.h>
 #include <getopt.h>
+#include <assert.h>
 
 #define BLOCKSIZE 1            //text files have a blocksize of 1
+
+struct ar_hdr{
+  char ar_name[16];
+  char ar_date[12];
+  char ar_uid[6], ar_gid[6];
+  char ar_mode[8];
+  char ar_size[10];
+  };
+
+//http://www.johnloomis.org/ece537/notes/Files/Examples/ls2.html
+//modified following two functions from this website
+void showFileInfo(char*, struct stat*);
+void modeToLetters(int, char[]);
+ 
+void printUse();
+void openAdd(char* fileIn, char *fileOut);
+struct ar_hdr* getStat(char* fileIn);
+
 
 int main(int argc, char **argv){
   int c;
@@ -29,13 +53,15 @@ int main(int argc, char **argv){
   int getopt(int argc, char * const argv[], const char *opstring);
   extern char *optarg;
   extern int optind, opterr, optopt;
+  
   char *input;
   char *output = argv[1];
 
-  void printUse();
-  void openAdd(char* fileIn, char *fileOut);
-  void printStat(char* fileIn);
+  char *permsOut;
   
+  struct ar_hdr* fileDeets = malloc(sizeof(struct ar_hdr));
+  assert (fileDeets != 0);
+
   opterr = 0;                    //diable invalid options
   while ((c = getopt(argc, argv, "q:x:tvd:A")) != -1)
     switch(c){
@@ -51,7 +77,7 @@ int main(int argc, char **argv){
         break;
       case 'v':                  //print a verbose table
         printf("v\n");
-	printStat(output);
+	fileDeets = getStat(output);
         break;
       case 'd':                  //delete named files from .a, if no arg nothing happens 
         printf("-d: %s\n", optarg);
@@ -88,7 +114,7 @@ void printUse(){
   return;
 }
 
- void openAdd(char *fileIn, char *fileOut){
+ void openAdd(char* fileIn, char* fileOut){
    char *input = fileIn;
    char *output = fileOut;
    
@@ -124,45 +150,56 @@ void printUse(){
   return;
 }
   
-void printStat(char* fileIn){
+struct ar_hdr* getStat(char* fileIn){
   struct stat sb;
+  struct ar_hdr* fileDeetsOut = malloc(sizeof(struct ar_hdr));
+  assert (fileDeetsOut != 0);
 
   if (stat(fileIn, &sb) == -1){
     perror("stat");
     exit(EXIT_FAILURE);
   }
+  else
+    showFileInfo(fileIn, &sb);
 
-  printf("protection %o\n", sb.st_mode);   
-  switch (sb.st_mode & S_IFMT) {
-    case S_IFBLK:  printf("block device\n");            break;
-    case S_IFCHR:  printf("character device\n");        break;
-    case S_IFDIR:  printf("directory\n");               break;
-    case S_IFIFO:  printf("FIFO/pipe\n");               break;
-    case S_IFLNK:  printf("symlink\n");                 break;
-    case S_IFREG:  printf("regular file\n");            break;
-    case S_IFSOCK: printf("socket\n");                  break;
-    default:       printf("unknown?\n");                break;
-    }
+  return fileDeetsOut;
+}
 
-    printf("I-node number:            %ld\n", (long) sb.st_ino);
+void showFileInfo(char *filename, struct stat *info_p){
+  char*uid_to_name(), *ctime(), *gid_to_name(), *filemode();
+  void modeToLetters();
+  char    modestr[11];
 
-    printf("Mode:                     %lo (octal)\n",
-	   (unsigned long) sb.st_mode);
+  modeToLetters( info_p->st_mode, modestr );
 
-    printf("Link count:               %ld\n", (long) sb.st_nlink);
-    printf("Ownership:                UID=%ld   GID=%ld\n",
-	   (long) sb.st_uid, (long) sb.st_gid);
-
-    printf("Preferred I/O block size: %ld bytes\n",
-	   (long) sb.st_blksize);
-    printf("File size:                %lld bytes\n",
-	   (long long) sb.st_size);
-    printf("Blocks allocated:         %lld\n",
-	   (long long) sb.st_blocks);
-
-    printf("Last status change:       %s", ctime(&sb.st_ctime));
-    printf("Last file access:         %s", ctime(&sb.st_atime));
-    printf("Last file modification:   %s", ctime(&sb.st_mtime));
-
+  printf( "%s"    , modestr);
+  printf( "%4d "  , (int) info_p->st_nlink);
+  printf( "%d/"   , (int) info_p->st_uid);
+  printf( "%d "   , (int) info_p->st_gid);
+  printf( "%8ld " , (long)info_p->st_size);
+  printf( "%.12s ", 4+ctime(&info_p->st_mtime));
+  printf( "%s\n"  , filename );
   return;
 }
+
+void modeToLetters( int mode, char str[] ){
+  strcpy( str, "----------" );           /* default=no perms */
+
+  if ( S_ISDIR(mode) )  str[0] = 'd';    /* directory?       */
+  if ( S_ISCHR(mode) )  str[0] = 'c';    /* char devices     */
+  if ( S_ISBLK(mode) )  str[0] = 'b';    /* block device     */
+
+  if ( mode & S_IRUSR ) str[1] = 'r';    /* 3 bits for user  */
+  if ( mode & S_IWUSR ) str[2] = 'w';
+  if ( mode & S_IXUSR ) str[3] = 'x';
+
+  if ( mode & S_IRGRP ) str[4] = 'r';    /* 3 bits for group */
+  if ( mode & S_IWGRP ) str[5] = 'w';
+  if ( mode & S_IXGRP ) str[6] = 'x';
+
+  if ( mode & S_IROTH ) str[7] = 'r';    /* 3 bits for other */
+  if ( mode & S_IWOTH ) str[8] = 'w';
+  if ( mode & S_IXOTH ) str[9] = 'x';
+  return;
+}
+
