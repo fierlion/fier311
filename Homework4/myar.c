@@ -10,11 +10,7 @@
 #define _BSD_SOURCE
 #define _SVID_SOURCE
 
-#define ARMAG "!<arch>\n"
-#define SARMAG 8
-#define ARFMAG "`\n"
-#define SARFMAG 2
-
+#include <ar.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,16 +24,8 @@
 #include <assert.h>
 
 #define BLOCKSIZE 1            //text files have a blocksize of 1
+#define NEWLINE "\n"
 
-struct ar_hdr{
-  char ar_name[16];
-  char ar_date[12];
-  char ar_uid[6], ar_gid[6];
-  char ar_mode[8];
-  char ar_size[10];
-  };
-
-//modified following two functions from this website
 //http://www.johnloomis.org/ece537/notes/Files/Examples/ls2.html
 void showFileInfo(char*, struct stat*);
 void modeToLetters(int, char[]);
@@ -56,24 +44,20 @@ int main(int argc, char **argv){
   extern int optind, opterr, optopt;
   
   char *input;
-  char *output = argv[1];
+  char *output = argv[2];
 
   char *permsOut;
   
   struct ar_hdr* fileDeets = malloc(sizeof(struct ar_hdr));
   assert (fileDeets != 0);
 
-  opterr = 0;                    //diable invalid options
+  opterr = 0;                    //disable invalid options
   while ((c = getopt(argc, argv, "q:x:tvd:A")) != -1)
     switch(c){
       case 'q':                  //append named files to .a, if no members create empty .a file
-	optind--;
-	for ( ;optind < argc && *argv[optind] != '-'; optind++){
+	for ( ;optind < argc && *argv[optind] != '\0'; optind++){
 	  openAdd(argv[optind], output);
 	}
-
-	//input = optarg;
-	//openAdd(input, output);
         break;
       case 'x':                  //extract (copy out) named members, if no arg, extract all
 	printf("-x: %s\n", optarg);
@@ -126,10 +110,10 @@ void printUse(){
    
    int in_fd;
    int out_fd;
+   off_t seekPos;
 
    char buf[BLOCKSIZE];
 
-   
    int num_read;
    int num_written;
 
@@ -144,10 +128,13 @@ void printUse(){
     perror("Can't open/create output file");
     exit(EXIT_FAILURE);
   }
-  lseek(out_fd, -1, SEEK_END);
-
+  write(out_fd, ARMAG, SARMAG);
+  seekPos = lseek(out_fd, -1, SEEK_END);
+  write(out_fd, ARFMAG, 2);   
+  if (((seekPos % 2) - 1) == 0)
+    write(out_fd, NEWLINE, 1);
   //put in write permissions here
-  write(out_fd, ARFMAG, SARFMAG); 
+
   while((num_read = read(in_fd, buf, BLOCKSIZE)) > 0){
     num_written = write(out_fd, buf, BLOCKSIZE);
 
