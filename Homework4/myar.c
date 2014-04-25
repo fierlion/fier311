@@ -32,6 +32,7 @@ void modeToLetters(int, char[]);
  
 void printUse();
 void openAdd(char* fileIn, char *fileOut);
+char* makeHeader(char* fileIn, char* headIn);
 struct ar_hdr* getStat(char* fileIn);
 void printStat(char* fileIn);
 
@@ -54,44 +55,44 @@ int main(int argc, char **argv){
   opterr = 0;                    //disable invalid options
   while ((c = getopt(argc, argv, "q:x:tvd:A")) != -1)
     switch(c){
-      case 'q':                  //append named files to .a, if no members create empty .a file
-	for ( ;optind < argc && *argv[optind] != '\0'; optind++){
-	  openAdd(argv[optind], output);
-	}
-        break;
-      case 'x':                  //extract (copy out) named members, if no arg, extract all
-	printf("-x: %s\n", optarg);
-        break;                   
-      case 't':                  //print a concise table of .a contents
-        printf("t\n");      
-        break;
-      case 'v':                  //print a verbose table
-        printf("v\n");
-	printStat(output);
-        break;
-      case 'd':                  //delete named files from .a, if no arg nothing happens 
-        printf("-d: %s\n", optarg);
-        break;
-      case 'A':                  //append all regular files in current dir, (except .a)
-        printf("A\n");
-        break;
-      case '?':
-        if(optopt == 'q'){
-	  printf("-q no arg\n");
-	  //create empty file
-	}  
-	else if (optopt == 'x'){
-	  printf("-x no arg\n");
-	  //extract all
-	}
-	else if (optopt == 'd')
-	  break;
-	else
-	  fprintf(stderr, "Unknown option -%c\n", optopt);
-        break;
-      default:
-        printUse();
-        exit(EXIT_FAILURE);
+    case 'q':                  //append named files to .a, if no members create empty .a file
+      for ( ;optind < argc && *argv[optind] != '\0'; optind++){
+	openAdd(argv[optind], output);
+      }
+      break;
+    case 'x':                  //extract (copy out) named members, if no arg, extract all
+      printf("-x: %s\n", optarg);
+      break;                   
+    case 't':                  //print a concise table of .a contents
+      printf("t\n");      
+      break;
+    case 'v':                  //print a verbose table
+      printf("v\n");
+      printStat(output);
+      break;
+    case 'd':                  //delete named files from .a, if no arg nothing happens 
+      printf("-d: %s\n", optarg);
+      break;
+    case 'A':                  //append all regular files in current dir, (except .a)
+      printf("A\n");
+      break;
+    case '?':
+      if(optopt == 'q'){
+	printf("-q no arg\n");
+	//create empty file
+      }  
+      else if (optopt == 'x'){
+	printf("-x no arg\n");
+	//extract all
+      }
+      else if (optopt == 'd')
+	break;
+      else
+	fprintf(stderr, "Unknown option -%c\n", optopt);
+      break;
+    default:
+      printUse();
+      exit(EXIT_FAILURE);
     }
 
   return 0;
@@ -104,18 +105,19 @@ void printUse(){
   return;
 }
 
- void openAdd(char* fileIn, char* fileOut){
-   char *input = fileIn;
-   char *output = fileOut;
-   
-   int in_fd;
-   int out_fd;
-   off_t seekPos;
+void openAdd(char* fileIn, char* fileOut){
+  char *input = fileIn;
+  char *output = fileOut;
+  char *header = malloc(70);
+ 
+  int in_fd;
+  int out_fd;
+  off_t seekPos;
 
-   char buf[BLOCKSIZE];
+  char buf[BLOCKSIZE];
 
-   int num_read;
-   int num_written;
+  int num_read;
+  int num_written;
 
   in_fd = open(input, O_RDONLY);
   if (in_fd == -1){
@@ -129,11 +131,15 @@ void printUse(){
     exit(EXIT_FAILURE);
   }
   write(out_fd, ARMAG, SARMAG);
-  seekPos = lseek(out_fd, -1, SEEK_END);
+  seekPos = lseek(out_fd, 0, SEEK_END);
+
+  //if (seekPos % 2  == 0)
+  //  write(out_fd, NEWLINE, 1);
+
+  //get write permissions string
+  header = makeHeader(fileIn, header);
+  write(out_fd, header, 70);
   write(out_fd, ARFMAG, 2);   
-  if (((seekPos % 2) - 1) == 0)
-    write(out_fd, NEWLINE, 1);
-  //put in write permissions here
 
   while((num_read = read(in_fd, buf, BLOCKSIZE)) > 0){
     num_written = write(out_fd, buf, BLOCKSIZE);
@@ -146,6 +152,15 @@ void printUse(){
   }
   return;
 }
+
+char *makeHeader(char* filein, char* headIn){
+  int headSize = 70;
+  strcat(headIn, "This is a header");
+  
+  headIn[headSize - 1] = '\0';
+  //printf("%s\n", headIn);
+  return headIn;
+  }
   
 struct ar_hdr* getStat(char* fileIn){
   struct stat sb;
@@ -209,4 +224,3 @@ void modeToLetters( int mode, char str[] ){
   if ( mode & S_IXOTH ) str[9] = 'x';
   return;
 }
-
