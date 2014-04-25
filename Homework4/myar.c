@@ -24,7 +24,7 @@
 #include <assert.h>
 
 #define BLOCKSIZE 1            //text files have a blocksize of 1
-#define NEWLINE "\n"
+#define HEADSIZE 60
 
 //http://www.johnloomis.org/ece537/notes/Files/Examples/ls2.html
 void showFileInfo(char*, struct stat*);
@@ -32,23 +32,19 @@ void modeToLetters(int, char[]);
  
 void printUse();
 void openAdd(char* fileIn, char *fileOut);
-char* makeHeader(char* fileIn, char* headIn);
-struct ar_hdr* getStat(char* fileIn);
+void makeHeader(char* fileIn, char* headerIn);
+
+struct ar_hdr* getStat(char* fileIn, struct ar_hdr* deetsIn);
+
 void printStat(char* fileIn);
 
 
 int main(int argc, char **argv){
   int c;
-
   int getopt(int argc, char * const argv[], const char *opstring);
   extern char *optarg;
   extern int optind, opterr, optopt;
-  
-  char *input;
   char *output = argv[2];
-
-  char *permsOut;
-  
   struct ar_hdr* fileDeets = malloc(sizeof(struct ar_hdr));
   assert (fileDeets != 0);
 
@@ -108,14 +104,11 @@ void printUse(){
 void openAdd(char* fileIn, char* fileOut){
   char *input = fileIn;
   char *output = fileOut;
-  char *header = malloc(70);
- 
+  char *header = malloc(HEADSIZE);
   int in_fd;
   int out_fd;
   off_t seekPos;
-
   char buf[BLOCKSIZE];
-
   int num_read;
   int num_written;
 
@@ -133,13 +126,9 @@ void openAdd(char* fileIn, char* fileOut){
   write(out_fd, ARMAG, SARMAG);
   seekPos = lseek(out_fd, 0, SEEK_END);
 
-  //if (seekPos % 2  == 0)
-  //  write(out_fd, NEWLINE, 1);
-
-  //get write permissions string
-  header = makeHeader(fileIn, header);
-  write(out_fd, header, 70);
-  write(out_fd, ARFMAG, 2);   
+  makeHeader(fileIn, header);
+  write(out_fd, header, HEADSIZE);
+  //  write(out_fd, ARFMAG, sizeof(ARFMAG));
 
   while((num_read = read(in_fd, buf, BLOCKSIZE)) > 0){
     num_written = write(out_fd, buf, BLOCKSIZE);
@@ -153,29 +142,26 @@ void openAdd(char* fileIn, char* fileOut){
   return;
 }
 
-char *makeHeader(char* filein, char* headIn){
-  int headSize = 70;
-  strcat(headIn, "This is a header");
-  
-  headIn[headSize - 1] = '\0';
-  //printf("%s\n", headIn);
-  return headIn;
-  }
-  
-struct ar_hdr* getStat(char* fileIn){
+void makeHeader(char* fileIn, char* headerIn){
+  char *fileName = malloc(16); 
+  strcat(fileName, fileIn);
+  strcat(fileName, "/");
+  fileName[15] = '\0';
+  strcat(headerIn, fileName);
+  strcat(headerIn, ARFMAG);
+}
+
+struct ar_hdr* getStat(char* fileIn, struct ar_hdr* deetsIn){
   struct stat sb;
-  struct ar_hdr* fileDeetsOut = malloc(sizeof(struct ar_hdr));
-  assert (fileDeetsOut != 0);
 
   if (stat(fileIn, &sb) == -1){
-    perror("stat");
+    perror("statGet");
     exit(EXIT_FAILURE);
   }
-  else
-    showFileInfo(fileIn, &sb);
-
-  return fileDeetsOut;
+  printf("Last file access:  %s\n", ctime(&sb.st_mtime));
+  return deetsIn;
 }
+
 
 void printStat(char* fileIn){
   struct stat sb;
@@ -188,7 +174,7 @@ void printStat(char* fileIn){
 }
 
 void showFileInfo(char *filename, struct stat *info_p){
-  char*uid_to_name(), *ctime(), *gid_to_name(), *filemode();
+  char *uid_to_name(), *ctime(), *gid_to_name(), *filemode();
   void modeToLetters();
   char    modestr[11];
 
