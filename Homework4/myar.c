@@ -128,8 +128,8 @@ void openAdd(char* fileIn, char* fileOut){
 
   makeHeader(fileIn, header);
   write(out_fd, header, HEADSIZE);
-  //  write(out_fd, ARFMAG, sizeof(ARFMAG));
-
+  seekPos = lseek(out_fd, 0, SEEK_END);
+  write(out_fd, ARFMAG, 2);
   while((num_read = read(in_fd, buf, BLOCKSIZE)) > 0){
     num_written = write(out_fd, buf, BLOCKSIZE);
 
@@ -143,27 +143,25 @@ void openAdd(char* fileIn, char* fileOut){
 }
 
 void makeHeader(char* fileIn, char* headerIn){
-  char *fileName = malloc(16);
-  char *date = malloc(12);
-  char *uid = malloc(6);
-  char *gid = malloc(6);
-  char *mode = malloc(8);
-  char *size = malloc(10);
-
+  int nameSize = sizeof(fileIn);
   struct ar_hdr* deets = malloc(sizeof(struct ar_hdr));
   assert(deets != 0);
   getStat(fileIn, deets);
-  //printf("%s\n", deets->ar_name);
-  //  strcat(fileName, fileIn);
-  //  strcat(fileName, "/");
-  //  fileName[15] = '\0';
-  strcat(headerIn, deets->ar_name);
+  int fileSize = sizeof(deets->ar_size);
+  strcat(headerIn, fileIn);
+  while (sizeof(deets->ar_name) >= nameSize){
+    strcat(headerIn, " ");
+    nameSize++;
+  }
   strcat(headerIn, deets->ar_date);
+  strcat(headerIn, "  ");
   strcat(headerIn, deets->ar_uid);
+  strcat(headerIn, "   ");
   strcat(headerIn, deets->ar_gid);
+  strcat(headerIn, "   ");
   strcat(headerIn, deets->ar_mode);
+  strcat(headerIn, "  "); 
   strcat(headerIn, deets->ar_size);
-  strcat(headerIn, deets->ar_fmag);
 }
 
 struct ar_hdr* getStat(char* fileIn, struct ar_hdr* deetsIn){
@@ -173,14 +171,12 @@ struct ar_hdr* getStat(char* fileIn, struct ar_hdr* deetsIn){
     perror("statGet");
     exit(EXIT_FAILURE);
   }
-  //printf("Last file access:  %s\n", ctime(&sb.st_mtime));
   sprintf(deetsIn->ar_name, "%s", fileIn);
-  sprintf(deetsIn->ar_date, "%u", sb.st_mtime);
-  sprintf(deetsIn->ar_uid, "%u", sb.st_uid);
-  sprintf(deetsIn->ar_gid, "%u", sb.st_gid);
+  sprintf(deetsIn->ar_date, "%i", sb.st_mtime);
+  sprintf(deetsIn->ar_uid, "%i", sb.st_uid);
+  sprintf(deetsIn->ar_gid, "%i", sb.st_gid);
   sprintf(deetsIn->ar_mode, "%o", sb.st_mode);
   sprintf(deetsIn->ar_size, "%u", sb.st_size);
-
   return deetsIn;
 }
 
