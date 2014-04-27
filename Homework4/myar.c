@@ -127,10 +127,12 @@ void openAdd(char* fileIn, char* fileOut){
   seekPos = lseek(out_fd, 0, SEEK_END);
 
   makeHeader(fileIn, header);
-  write(out_fd, header, HEADSIZE);
+  write(out_fd, header, strlen(header));
   seekPos = lseek(out_fd, 0, SEEK_END);
   write(out_fd, ARFMAG, 2);
+  int oddCount = 0;
   while((num_read = read(in_fd, buf, BLOCKSIZE)) > 0){
+    oddCount++;
     num_written = write(out_fd, buf, BLOCKSIZE);
 
     if (num_written != num_read){
@@ -139,6 +141,9 @@ void openAdd(char* fileIn, char* fileOut){
       exit(EXIT_FAILURE);
     }
   }
+  if (oddCount % 2 != 0)
+    write(out_fd, "\n", sizeof(char));
+  oddCount = 0;
   return;
 }
 
@@ -147,9 +152,10 @@ void makeHeader(char* fileIn, char* headerIn){
   struct ar_hdr* deets = malloc(sizeof(struct ar_hdr));
   assert(deets != 0);
   getStat(fileIn, deets);
-  int fileSize = sizeof(deets->ar_size);
+  int fileSize = strlen(deets->ar_size);
   strcat(headerIn, fileIn);
-  while (sizeof(deets->ar_name) >= nameSize){
+  strcat(headerIn, "/");
+  while (sizeof(deets->ar_name) > nameSize){
     strcat(headerIn, " ");
     nameSize++;
   }
@@ -162,6 +168,10 @@ void makeHeader(char* fileIn, char* headerIn){
   strcat(headerIn, deets->ar_mode);
   strcat(headerIn, "  "); 
   strcat(headerIn, deets->ar_size);
+  while (sizeof(deets->ar_size) > fileSize){
+    strcat(headerIn, " ");
+    fileSize++;
+  }
 }
 
 struct ar_hdr* getStat(char* fileIn, struct ar_hdr* deetsIn){
