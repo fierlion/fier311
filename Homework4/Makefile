@@ -96,7 +96,6 @@ testt: testv12345 testv135 testv24
 
 tests: testq testt testv
 
-	ar q ar12345.ar 1-s.txt 2-s.txt 3-s.txt 4-s.txt 5-s.txt
 clean:
 	rm -f $(PROGS) *.o *~
 	rm -f ar12345.ar ar24.ar ar135.ar
