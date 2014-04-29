@@ -1,0 +1,20 @@
+Ray Allan Foote
+footer@onid.orst.edu
+CS311_400
+Assignment 2 / Problem 8
+
+(gdb) run
+Starting program: /home/student/Documents/CS311/Homework2/Problem8 
+
+Program received signal SIGSEGV, Segmentation fault.
+0x000000000040049c in func (ptr=0x0) at Problem8.c:14
+14		       ptr[i] = i;
+Missing separate debuginfos, use: debuginfo-install glibc-2.12-1.107.el6_4.4.x86_64
+(gdb) bt
+#0  0x000000000040049c in func (ptr=0x0) at Problem8.c:14
+#1  0x00000000004004cd in main (argc=1, argv=0x7fffffffe238) at Problem8.c:20
+(gdb) print ptr
+$1 = (int *) 0x0
+(gdb) print i
+$2 = 0
+(gdb) 
