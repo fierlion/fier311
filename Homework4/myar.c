@@ -26,14 +26,13 @@
 #define BLOCKSIZE 1
 #define HEADSIZE 60
 
-
 void printUse();
 void openAdd(char* fileIn, char *fileOut);
 void makeHeader(char* fileIn, char* headerIn);
 void extract(char* arFile, char* fileIn);
 struct ar_hdr* getStat(char* fileIn, struct ar_hdr* deetsIn);
 void printName(char *fileIn);
-void showFileInfo(char*, struct stat*);
+//void showFileInfo(char*, struct stat*);
 void modeToLetters(int, char[]);
 void printStat(char* fileIn);
 
@@ -64,8 +63,7 @@ int main(int argc, char **argv){
       printName(argv[2]);      
       break;
     case 'v':                  //print a verbose table
-      printf("v\n");
-      printStat(output);
+      printStat(argv[2]);
       break;
     case 'd':                  //delete named files from .a, if no arg nothing happens 
       printf("-d: %s\n", optarg);
@@ -190,8 +188,61 @@ struct ar_hdr* getStat(char* fileIn, struct ar_hdr* deetsIn){
 }
 
 void extract(char* arFile, char* fileIn){
-  //if ((seekPos = lseek(in_fd, 
-  return;
+  char *input = arFile;
+  int in_fd;
+  int out_fd;
+  off_t seekPos = 0;
+  off_t seekEnd = 0;
+  char fileName[16];
+  char fileSize[10];
+  char filePerm[4];
+  int fileSizeInt = 0;
+  char buf[BLOCKSIZE];
+  int num_written = 0;
+
+  in_fd = open(input, O_RDONLY);
+  if (in_fd == -1){
+    perror("Can't open input file");
+    exit(EXIT_FAILURE);
+  }
+  seekEnd = lseek(in_fd, -1, SEEK_END);
+  //find first filename
+  seekPos = lseek(in_fd, 8, SEEK_SET);
+  if(read(in_fd, fileName, sizeof(fileName)) != sizeof(fileName))
+    exit(EXIT_FAILURE);
+  while (seekPos < seekEnd) {
+    if (strncmp(fileName, fileIn, strlen(fileIn)) == 0){
+      seekPos = lseek(in_fd, seekPos + 42, SEEK_SET);
+      read(in_fd, filePerm, strlen(filePerm));
+      seekPos = lseek(in_fd, seekPos + 6, SEEK_SET);
+      read(in_fd, fileSize, strlen(fileSize));
+      out_fd = open(fileIn, O_CREAT | O_WRONLY, strtol(filePerm, NULL, 8));
+      if(out_fd == -1){
+	perror("Can't open -x output file");
+	exit(EXIT_FAILURE);
+      }
+      seekPos = lseek(in_fd, seekPos + 12, SEEK_SET);
+      while(num_written < atoi(fileSize)){
+     	read(in_fd, buf, BLOCKSIZE); 
+	write(out_fd, buf, BLOCKSIZE);
+	num_written++;
+      } 
+      exit(EXIT_SUCCESS);
+    }
+    else seekPos = lseek(in_fd, seekPos + 48, SEEK_SET);
+    if(read(in_fd, fileSize, sizeof(fileSize)) != sizeof(fileSize))
+      exit(EXIT_FAILURE);
+    fileSizeInt = atoi(fileSize); 
+    if (fileSizeInt % 2 != 0){
+      fileSizeInt++;
+    }
+    //find next 
+    seekPos = lseek(in_fd, seekPos + fileSizeInt + 12, SEEK_SET);
+    //get filename
+    if(read(in_fd, fileName, sizeof(fileName)) != sizeof(fileName))
+      break;
+  }
+  exit(EXIT_SUCCESS);
 }
 
 void printName(char *fileIn){
@@ -249,30 +300,49 @@ exit(EXIT_SUCCESS);
 }
 
 void printStat(char* fileIn){
-  struct stat sb;
-  if (stat(fileIn, &sb) == -1){
-    perror("stat");
+  struct ar_hdr* deets = malloc(sizeof(struct ar_hdr));
+  void modeToLetters();  
+  char *input = fileIn;
+  int in_fd;
+  off_t seekPos = 0;
+  off_t seekEnd = 0;
+  int fileSizeInt = 0;
+
+  in_fd = open(input, O_RDONLY);
+  if (in_fd == -1){
+    perror("Can't open input file");
     exit(EXIT_FAILURE);
   }
-  else
-    showFileInfo(fileIn, &sb);
-}
-
-void showFileInfo(char *filename, struct stat *info_p){
-  char *uid_to_name(), *ctime(), *gid_to_name(), *filemode();
-  void modeToLetters();
-  char    modestr[11];
-
-  modeToLetters(info_p->st_mode, modestr);
-
-  printf( "%s"    , modestr);
-  printf( "%4d "  , (int) info_p->st_nlink);
-  printf( "%d/"   , (int) info_p->st_uid);
-  printf( "%d "   , (int) info_p->st_gid);
-  printf( "%8ld " , (long)info_p->st_size);
-  printf( "%.12s ", 4+ctime(&info_p->st_mtime));
-  printf( "%s\n"  , filename );
-  return;
+  seekEnd = lseek(in_fd, -1, SEEK_END);
+  //find first filename
+  seekPos = lseek(in_fd, 8, SEEK_SET);
+  while (seekPos < seekEnd) {
+    //ar_name[16]
+    read(in_fd, deets->ar_name, sizeof(deets->ar_name));
+    seekPos = lseek(in_fd, seekPos + 16, SEEK_SET);
+    //ar_date[12]
+    read(in_fd, deets->ar_date, sizeof(deets->ar_date));
+    seekPos = lseek(in_fd, seekPos + 12, SEEK_SET);
+    //ar_uid[6]
+    read(in_fd, deets->ar_uid, sizeof(deets->ar_uid));
+    seekPos = lseek(in_fd, seekPos + 6, SEEK_SET);
+    //ar_gid[6]
+    read(in_fd, deets->ar_gid, sizeof(deets->ar_gid));
+    seekPos = lseek(in_fd, seekPos + 6, SEEK_SET);
+    //ar_mode[8]
+    read(in_fd, deets->ar_mode, sizeof(deets->ar_mode));
+    seekPos = lseek(in_fd, seekPos + 8, SEEK_SET);
+    //ar_size[10]
+    read(in_fd, deets->ar_size, sizeof(deets->ar_size));
+    seekPos = lseek(in_fd, seekPos + 10, SEEK_SET);
+    //ar_fmag[2]
+    fileSizeInt = atoi(deets->ar_size);
+    if (fileSizeInt % 2 != 0)
+      fileSizeInt++;
+    seekPos = lseek(in_fd, seekPos + fileSizeInt + 2, SEEK_SET);
+    printf("%s\n", deets->ar_name);
+  }
+  exit(EXIT_SUCCESS);
 }
 
 void modeToLetters( int mode, char str[] ){

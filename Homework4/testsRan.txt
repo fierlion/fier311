@@ -1,0 +1,2 @@
+I ran tests to check each of my working elements -q -x -t and some -v.  For both -q and -t I tested several of my own text files as well as a couple of .c code files.  I found that ultimately the ar function would not treat my .ar files created with ./myar -q as it treated its own .ar files.  
+For -x I tested with each of the 1-s -- 5-s as well as my own text files and c files.  Everything works as expected.

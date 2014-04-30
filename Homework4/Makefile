@@ -1,7 +1,7 @@
 # Ray Allan Foote
 # footer@onid.oregonstate.edu
 # CS311_400
-# Assignment 4
+# Assignment 4 Makefile
 
 CC=gcc
 #DEBUG=-g
