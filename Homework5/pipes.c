@@ -14,10 +14,6 @@ int main(int argc, char **argv){
   pipe(pipes + 4);
   pipe(pipes + 6);
 
-
-
-
-
   switch(fork()){
   case -1:
     perror("fork");
@@ -76,6 +72,7 @@ int main(int argc, char **argv){
     //replace uniq's stdout with write end of 3rd pipe
     dup2(pipes[5], 1);
     // close all ends of pipes
+
     close(pipes[0]);
     close(pipes[1]);
     close(pipes[2]);
@@ -96,8 +93,11 @@ int main(int argc, char **argv){
     perror("fork4");
     exit(EXIT_FAILURE);
   case 0:
+    //replace tee's stdin with input read of 4th pipe
     dup2(pipes[4], 0);
-
+    //replace tee's stdout with write end of 4th pipe
+    dup2(pipes[7], 1);
+   
     close(pipes[0]);
     close(pipes[1]);
     close(pipes[2]);
@@ -108,13 +108,32 @@ int main(int argc, char **argv){
     close(pipes[7]);
     execlp("tee", "tee", outFile, (char *)0);
     perror("tee fail exec");
+    exit(EXIT_FAILURE);
   default:
     break;
   }
 
-
-
-
+  switch(fork()){
+  case -1:
+    perror("fork5");
+    exit(EXIT_FAILURE);
+  case 0:
+    //replace wc's stdin with input read of 5th pipe
+    dup2(pipes[6], 0);
+    close(pipes[0]);
+    close(pipes[1]);
+    close(pipes[2]);
+    close(pipes[3]);
+    close(pipes[4]);
+    close(pipes[5]);
+    close(pipes[6]);
+    close(pipes[7]);
+    execlp("wc", "wc", (char *)0);
+    perror("wc fail exec");
+    exit(EXIT_FAILURE);
+  default:
+    break;
+  }
   close(pipes[0]);
   close(pipes[1]);
   close(pipes[2]);
@@ -123,6 +142,7 @@ int main(int argc, char **argv){
   close(pipes[5]);
   close(pipes[6]);
   close(pipes[7]);
+  wait(NULL);
   wait(NULL);
   wait(NULL);
   wait(NULL);
