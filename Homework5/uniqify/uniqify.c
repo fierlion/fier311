@@ -30,17 +30,18 @@ int main(int argc, char **argv){
   const char delimiters[] = " .,;:!-";
   char *running;
   char *token;
-  //  char *wordBuff[WORDBUF_SIZE];  
 
   while((readIn = getline(&line, &len, stdin)) != -1){
     running = strdupa(line);                /* Make writable copy.  */
     token = strsep (&running, delimiters);
+    for(int i = 0; i<strlen(token)+1; i++){
+      token[i] = tolower(token[i]);
+    }
     printf("%s\n", token);
     while (token != NULL){
       token = strsep (&running, delimiters);
       if (token != NULL){
-	int i = 0;
-	for(i; i<strlen(token)+1; i++){
+	for(int i = 0; i<strlen(token)+1; i++){
 	  token[i] = tolower(token[i]);
 	}
 	printf("%s\n", token);
