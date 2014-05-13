@@ -54,45 +54,37 @@ int main(int argc, char **argv){
   while((readIn = getline(&line, &len, stdin)) != -1){
     running = strdupa(line);                /* Make writable copy.  */
     token = strsep (&running, delimiters);
-    toklen = sizeof(token);
+    toklen = strlen(token)+1;
     for(int i = 0; i< toklen-1; i++){
       token[i] = tolower(token[i]);
     }
-    if (strncmp(token, buf.mtext, toklen) == 0){
-      buf.count += 1;
-    }
-    else {
-      memcpy(buf.mtext, token, toklen);
-      printf("%s\n", buf.mtext);
-    }
+    memcpy(buf.mtext, token, toklen);
+    printf("%s, %d\n", buf.mtext, toklen);
     if (msgsnd(msqid, &buf, toklen, 0) == -1)
       perror("msgsend");
     while (token != NULL){
-      token = strsep (&running, delimiters);
-      
-      if (token != NULL){    //bug here: if token previous is null, strlen wrong
-	toklen = sizeof(token);
+      token = strsep (&running, delimiters);      
+      if (token != NULL){
+	toklen = strlen(token)+1;
 	for(int i = 0; i<toklen - 1; i++){
 	  token[i] = tolower(token[i]);
 	}
-	if (strncmp(token, buf.mtext, toklen) == 0){
-	  buf.count += 1;
-	}
-        else {
-          memcpy(buf.mtext, token, toklen);
-          printf("%s\n", buf.mtext);
-	  if (msgsnd(msqid, &buf, toklen, 0) == -1)
-	      perror("msgsend2");
-	}
-	  
-	
-	//      printf("%s\n", token);
+        memcpy(buf.mtext, token, toklen);
+        printf("%s, %d\n", buf.mtext, toklen);
+	if (msgsnd(msqid, &buf, toklen, 0) == -1)
+          perror("msgsend2");
       }
     }
-    //if (msgctl(msqid, IPC_RMID, NULL) == -1) {
-    //  perror("msgctl");
-    //  exit(EXIT_FAILURE);
-    //}
-  }  
+  }
+
+  if (msgctl(msqid, IPC_RMID, NULL) == -1){
+    perror("msgctl");
+    exit(EXIT_FAILURE);
+  }
   exit(EXIT_SUCCESS);
 }
+
+
+
+//if (strncmp(token, buf.mtext, toklen) == 0)
+//      buf.count += 1;
