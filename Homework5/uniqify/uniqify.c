@@ -83,27 +83,33 @@ int main(int argc, char **argv){
     }
   }
   printf("%d\n", numWordsIn);
+  
+  //  for(;;) { /* Spock never quits! */
+  //  if (msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0) == -1) {
+  //    perror("msgrcv");
+  //    exit(1);
+  //  }
+  //  printf("spock: \"%s\"\n", buf.mtext);
+  // }
 
-  if (msgctl(msqid, IPC_RMID, NULL) == -1) {
-    perror("msgctl");
-    exit(EXIT_FAILURE);
-  }
+  //if (msgctl(msqid, IPC_RMID, NULL) == -1) {
+  //  perror("msgctl");
+  //  exit(EXIT_FAILURE);
+  // }
 
   for (int j = 0; j < 3; j++){
-    //fork child
+    if (fork() == 0){
+      for(int x = 0; x < 3; x++){
+  	msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0);
+  	printf("%s\n", buf.mtext);
+      }
+      exit(EXIT_SUCCESS);
+    }
   }
 
   for (int k = 0; k < 3; k++){
-    //wait child
+    wait(NULL);
   }
 
   exit(EXIT_SUCCESS);
 }
-
-
-
-//if (strncmp(token, buf.mtext, toklen) == 0)
-//      buf.count += 1;
-//  while (msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0) != -1) {
-//    printf("spock: \"%s\"\n", buf.mtext);
-//}
