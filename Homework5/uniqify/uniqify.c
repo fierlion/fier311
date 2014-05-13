@@ -31,6 +31,7 @@ int main(int argc, char **argv){
   char *line = NULL;
   size_t len = 0;
   ssize_t readIn = 0;
+  int numWordsIn = 0;
   const char delimiters[] = " .,;:!-";
   char *running;
   char *token;
@@ -51,36 +52,51 @@ int main(int argc, char **argv){
 
   buf.mtype = 1;
 
+  //tokenize and put into mesQue
   while((readIn = getline(&line, &len, stdin)) != -1){
     running = strdupa(line);                /* Make writable copy.  */
-    token = strsep (&running, delimiters);
-    toklen = strlen(token)+1;
-    for(int i = 0; i< toklen-1; i++){
-      token[i] = tolower(token[i]);
+    token = strsep (&running, delimiters);    
+    if (strcmp(token, "\n") != 0){
+      toklen = strlen(token)+1;
+      for(int i = 0; i< toklen-1; i++){
+	token[i] = tolower(token[i]);
+      }
+      memcpy(buf.mtext, token, toklen);
+      numWordsIn += 1;
     }
-    memcpy(buf.mtext, token, toklen);
     printf("%s, %d\n", buf.mtext, toklen);
     if (msgsnd(msqid, &buf, toklen, 0) == -1)
       perror("msgsend");
-    while (token != NULL){
+    while(token != NULL){
       token = strsep (&running, delimiters);      
-      if (token != NULL){
+      if ((token != NULL) && (strcmp(token, "\n") != 0)){
 	toklen = strlen(token)+1;
-	for(int i = 0; i<toklen - 1; i++){
+        for(int i = 0; i<toklen - 1; i++){
 	  token[i] = tolower(token[i]);
 	}
-        memcpy(buf.mtext, token, toklen);
+	memcpy(buf.mtext, token, toklen);
+	numWordsIn += 1;
         printf("%s, %d\n", buf.mtext, toklen);
 	if (msgsnd(msqid, &buf, toklen, 0) == -1)
           perror("msgsend2");
       }
     }
   }
+  printf("%d\n", numWordsIn);
 
-  if (msgctl(msqid, IPC_RMID, NULL) == -1){
+  if (msgctl(msqid, IPC_RMID, NULL) == -1) {
     perror("msgctl");
     exit(EXIT_FAILURE);
   }
+
+  for (int j = 0; j < 3; j++){
+    //fork child
+  }
+
+  for (int k = 0; k < 3; k++){
+    //wait child
+  }
+
   exit(EXIT_SUCCESS);
 }
 
@@ -88,3 +104,6 @@ int main(int argc, char **argv){
 
 //if (strncmp(token, buf.mtext, toklen) == 0)
 //      buf.count += 1;
+//  while (msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0) != -1) {
+//    printf("spock: \"%s\"\n", buf.mtext);
+//}
