@@ -20,6 +20,7 @@
 #include <mqueue.h>
 #include <sys/ipc.h>
 #include <ctype.h>
+#include <search.h>
 
 struct messy {
   long mtype;
@@ -32,7 +33,7 @@ int main(int argc, char **argv){
   size_t len = 0;
   ssize_t readIn = 0;
   int numWordsIn = 0;
-  const char delimiters[] = " .,;:!-";
+  const char delimiters[] = " \"[]{}.,;:!-/*()?!@#$%^&_=+1234567890\\<>";
   char *running;
   char *token;
   int toklen;
@@ -40,6 +41,7 @@ int main(int argc, char **argv){
   struct messy buf;
   int msqid;
   key_t key;
+  //search
 
   if ((key = ftok("uniqify.c", 'B')) == -1){
     perror("ftok");
@@ -55,53 +57,45 @@ int main(int argc, char **argv){
   //tokenize and put into mesQue
   while((readIn = getline(&line, &len, stdin)) != -1){
     running = strdupa(line);                /* Make writable copy.  */
-    token = strsep (&running, delimiters);    
-    if (strcmp(token, "\n") != 0){
-      toklen = strlen(token)+1;
+    token = strsep (&running, delimiters);
+    if (strcmp(token, "\n")){      
+      toklen = strlen(token)+1;    
       for(int i = 0; i< toklen-1; i++){
 	token[i] = tolower(token[i]);
       }
-      memcpy(buf.mtext, token, toklen);
-      numWordsIn += 1;
+      if (toklen > 1){
+	memcpy(buf.mtext, token, toklen);
+	numWordsIn += 1;
+	printf("%s, %d\n", buf.mtext, toklen);
+	if (msgsnd(msqid, &buf, toklen, 0) == -1)
+	  perror("msgsend");    
+      }
     }
-    printf("%s, %d\n", buf.mtext, toklen);
-    if (msgsnd(msqid, &buf, toklen, 0) == -1)
-      perror("msgsend");
     while(token != NULL){
       token = strsep (&running, delimiters);      
       if ((token != NULL) && (strcmp(token, "\n") != 0)){
 	toklen = strlen(token)+1;
-        for(int i = 0; i<toklen - 1; i++){
+	for(int i = 0; i<toklen - 1; i++){
 	  token[i] = tolower(token[i]);
 	}
-	memcpy(buf.mtext, token, toklen);
-	numWordsIn += 1;
-        printf("%s, %d\n", buf.mtext, toklen);
-	if (msgsnd(msqid, &buf, toklen, 0) == -1)
-          perror("msgsend2");
+	if (toklen > 1){
+	  memcpy(buf.mtext, token, toklen);
+	  numWordsIn += 1;
+	  printf("%s, %d\n", buf.mtext, toklen);
+	  if (msgsnd(msqid, &buf, toklen, 0) == -1)
+	    perror("msgsend2");
+	}
       }
     }
   }
-  printf("%d\n", numWordsIn);
-  
-  //  for(;;) { /* Spock never quits! */
-  //  if (msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0) == -1) {
-  //    perror("msgrcv");
-  //    exit(1);
-  //  }
-  //  printf("spock: \"%s\"\n", buf.mtext);
-  // }
+  //  printf("%d\n", numWordsIn);
 
-  //if (msgctl(msqid, IPC_RMID, NULL) == -1) {
-  //  perror("msgctl");
-  //  exit(EXIT_FAILURE);
-  // }
-
+  //make 3 children
   for (int j = 0; j < 3; j++){
     if (fork() == 0){
       for(int x = 0; x < 3; x++){
-  	msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0);
-  	printf("%s\n", buf.mtext);
+	msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0);
+	printf("%s\n", buf.mtext);
       }
       exit(EXIT_SUCCESS);
     }
@@ -109,6 +103,11 @@ int main(int argc, char **argv){
 
   for (int k = 0; k < 3; k++){
     wait(NULL);
+  }
+
+  if (msgctl(msqid, IPC_RMID, NULL) == -1) {
+    perror("msgctl");
+    exit(1);
   }
 
   exit(EXIT_SUCCESS);
