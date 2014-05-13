@@ -21,7 +21,11 @@
 #include <sys/ipc.h>
 #include <ctype.h>
 
-#define WORDBUF_SIZE 1000
+struct messy {
+  long mtype;
+  char mtext[30]; //longest english word < 30
+  int count;
+};
 
 int main(int argc, char **argv){
   char *line = NULL;
@@ -30,23 +34,65 @@ int main(int argc, char **argv){
   const char delimiters[] = " .,;:!-";
   char *running;
   char *token;
+  int toklen;
+  //msgqueue
+  struct messy buf;
+  int msqid;
+  key_t key;
+
+  if ((key = ftok("uniqify.c", 'B')) == -1){
+    perror("ftok");
+    exit(EXIT_FAILURE);
+  }
+  if ((msqid = msgget(key, 0666 | IPC_CREAT)) == -1){
+    perror("msgget");
+    exit(EXIT_FAILURE);
+  }
+
+  buf.mtype = 1;
 
   while((readIn = getline(&line, &len, stdin)) != -1){
     running = strdupa(line);                /* Make writable copy.  */
     token = strsep (&running, delimiters);
-    for(int i = 0; i<strlen(token)+1; i++){
+    toklen = sizeof(token);
+    for(int i = 0; i< toklen-1; i++){
       token[i] = tolower(token[i]);
     }
-    printf("%s\n", token);
+    if (strncmp(token, buf.mtext, toklen) == 0){
+      buf.count += 1;
+    }
+    else {
+      memcpy(buf.mtext, token, toklen);
+      printf("%s\n", buf.mtext);
+    }
+    if (msgsnd(msqid, &buf, toklen, 0) == -1)
+      perror("msgsend");
     while (token != NULL){
       token = strsep (&running, delimiters);
-      if (token != NULL){
-	for(int i = 0; i<strlen(token)+1; i++){
+      
+      if (token != NULL){    //bug here: if token previous is null, strlen wrong
+	toklen = sizeof(token);
+	for(int i = 0; i<toklen - 1; i++){
 	  token[i] = tolower(token[i]);
 	}
-	printf("%s\n", token);
+	if (strncmp(token, buf.mtext, toklen) == 0){
+	  buf.count += 1;
+	}
+        else {
+          memcpy(buf.mtext, token, toklen);
+          printf("%s\n", buf.mtext);
+	  if (msgsnd(msqid, &buf, toklen, 0) == -1)
+	      perror("msgsend2");
+	}
+	  
+	
+	//      printf("%s\n", token);
       }
     }
+    //if (msgctl(msqid, IPC_RMID, NULL) == -1) {
+    //  perror("msgctl");
+    //  exit(EXIT_FAILURE);
+    //}
   }  
   exit(EXIT_SUCCESS);
 }
