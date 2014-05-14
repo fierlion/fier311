@@ -37,7 +37,7 @@ int main(int argc, char **argv){
   char *line = NULL;
   size_t len = 0;
   ssize_t readIn = 0;
-  int numChilds = 1;
+  int numChilds = 3;
   int numWordsIn = 0;
   const char delimiters[] = " \"[]{}.,;:!-/*()?!@#$%^&_=+1234567890\\<>";
   char *running;
@@ -66,7 +66,9 @@ int main(int argc, char **argv){
     running = strdupa(line);                /* Make writable copy.  */
     token = strsep (&running, delimiters);
     if (strcmp(token, "\n")){      
-      toklen = strlen(token)+1;    
+      toklen = strlen(token)+1;
+      /* ditch newline at end, if it exists */
+      if (token[toklen-2] == '\n') token[toklen-2] = '\0';    
       for(int i = 0; i< toklen-1; i++){
 	token[i] = tolower(token[i]);
       }
@@ -83,6 +85,8 @@ int main(int argc, char **argv){
       token = strsep (&running, delimiters);      
       if ((token != NULL) && (strcmp(token, "\n") != 0)){
 	toklen = strlen(token)+1;
+	/* ditch newline at end, if it exists */
+	if (token[toklen-2] == '\n') token[toklen-2] = '\0';    
 	for(int i = 0; i<toklen - 1; i++){
 	  token[i] = tolower(token[i]);
 	}
@@ -167,13 +171,8 @@ int messComp(const void *l, const void*r){
 
 void walkTree(const void *mtext, VISIT x, int level){
   struct messy *m = *(struct messy **)mtext;
-  printf(" %s %d\n",
-	 //level,
-	 //x == preorder?"preorder":
-	 //x == postorder?"postorder":
-	 //x == endorder?"endorder":
-	 //x == leaf?"leaf":
-	 //	 "unknown",
-	 m->mtext, m->count);
+  if(x == postorder || x == leaf){
+    printf("%s %d\n", m->mtext, m->count);
+  } 
   return;
 }
