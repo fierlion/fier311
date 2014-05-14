@@ -31,11 +31,13 @@ struct messy {
 struct messy * makeMess(long type, char *mess, int count);
 void freeMess(void *mess);
 int messComp(const void *l, const void*r);
+void walkTree(const void *mtext, VISIT x, int level);
 
 int main(int argc, char **argv){
   char *line = NULL;
   size_t len = 0;
   ssize_t readIn = 0;
+  int numChilds = 1;
   int numWordsIn = 0;
   const char delimiters[] = " \"[]{}.,;:!-/*()?!@#$%^&_=+1234567890\\<>";
   char *running;
@@ -46,7 +48,7 @@ int main(int argc, char **argv){
   int msqid;
   key_t key;
   //search
-  static void *root = NULL;
+  //  static void *root = NULL;
 
   if ((key = ftok("uniqify.c", 'B')) == -1){
     perror("ftok");
@@ -97,35 +99,38 @@ int main(int argc, char **argv){
   }
    
   //make 3 children
-  for (int j = 0; j < 3; j++){
+  for (int j = 0; j < numChilds; j++){
     if (fork() == 0){
       void *tree = 0;
       struct messy *mt = 0;
       struct messy *retval = 0;
-      msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0);
-      mt = makeMess(buf.mtype, buf.mtext, buf.count);
-      printf("original %s\n", mt->mtext);
-      retval = tsearch(mt, &tree, messComp);
-      if(retval == 0){
-	printf("retval fail\n");
-      }
-      else{
-	struct messy *re = 0;
-	re = *(struct messy **)retval;
-	if(re != mt){
-	  printf("found existing ok %u\n", j);
-	  freeMess(mt);
+      for (int ja = 0; ja < (numWordsIn / numChilds); ja++){ 
+	msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0);
+	mt = makeMess(buf.mtype, buf.mtext, buf.count);
+	//	printf("original %s\n", mt->mtext);
+	retval = tsearch(mt, &tree, messComp);
+	if(retval == 0){
+	  printf("retval fail\n");
 	}
 	else{
-	  printf("insert ok %u\n", j);
+	  struct messy *re = 0;
+	  re = *(struct messy **)retval;
+	  if(re != mt){
+	    //printf("found existing ok %u\n", j);
+	    re->count += 1;
+	    //  printf("count = %d\n", mt->count);
+	  }
+	  else{
+	    //printf("insert ok %u\n", j);
+	  }
 	}
       }
-
+      twalk(tree, walkTree);
       exit(EXIT_SUCCESS);
     }
   }
 
-  for (int k = 0; k < 3; k++){
+  for (int k = 0; k < numChilds; k++){
     wait(NULL);
   }
 
@@ -149,16 +154,6 @@ struct messy * makeMess(long type, char *mess, int count){
   return temp;
 }
 
-void freeMess(void *mess){
-  struct messy *tmp = (struct messy*) &mess;
-  if(!tmp)
-    return;
-  free(tmp->mtype);
-  free(tmp->mtext);
-  free(tmp->count);
-  free(tmp);
-  return;
-}
 
 int messComp(const void *l, const void*r){
   const struct messy *ml = l;
@@ -170,3 +165,15 @@ int messComp(const void *l, const void*r){
   return 0;
 }
 
+void walkTree(const void *mtext, VISIT x, int level){
+  struct messy *m = *(struct messy **)mtext;
+  printf(" %s %d\n",
+	 //level,
+	 //x == preorder?"preorder":
+	 //x == postorder?"postorder":
+	 //x == endorder?"endorder":
+	 //x == leaf?"leaf":
+	 //	 "unknown",
+	 m->mtext, m->count);
+  return;
+}
