@@ -18,8 +18,8 @@ uniqify.o: uniqify.c
 
 #tests as targets
 test:
-	./uniqify -n 5 < test.txt > uniqTestOut
-	bash uniqify.bash < test.txt > bashTestOut
+	./uniqify -n 5 < websters.txt > uniqTestOut
+	bash uniqify.bash < websters.txt > bashTestOut
 	diff uniqTestOut bashTestOut
 clean:
 	rm -f $(PROGS) *.o *~
