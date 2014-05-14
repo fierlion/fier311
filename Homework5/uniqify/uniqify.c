@@ -28,6 +28,10 @@ struct messy {
   int count;
 };
 
+struct messy * makeMess(long type, char *mess, int count);
+void freeMess(void *mess);
+int messComp(const void *l, const void*r);
+
 int main(int argc, char **argv){
   char *line = NULL;
   size_t len = 0;
@@ -42,6 +46,7 @@ int main(int argc, char **argv){
   int msqid;
   key_t key;
   //search
+  static void *root = NULL;
 
   if ((key = ftok("uniqify.c", 'B')) == -1){
     perror("ftok");
@@ -65,8 +70,9 @@ int main(int argc, char **argv){
       }
       if (toklen > 1){
 	memcpy(buf.mtext, token, toklen);
+	buf.count = 1;
 	numWordsIn += 1;
-	printf("%s, %d\n", buf.mtext, toklen);
+	//       	printf("%s, %d\n", buf.mtext, buf.count);
 	if (msgsnd(msqid, &buf, toklen, 0) == -1)
 	  perror("msgsend");    
       }
@@ -80,23 +86,41 @@ int main(int argc, char **argv){
 	}
 	if (toklen > 1){
 	  memcpy(buf.mtext, token, toklen);
+	  buf.count = 1;
 	  numWordsIn += 1;
-	  printf("%s, %d\n", buf.mtext, toklen);
+	  //printf("%s, %d\n", buf.mtext, buf.count);
 	  if (msgsnd(msqid, &buf, toklen, 0) == -1)
 	    perror("msgsend2");
 	}
       }
     }
   }
-  //  printf("%d\n", numWordsIn);
-
+   
   //make 3 children
   for (int j = 0; j < 3; j++){
     if (fork() == 0){
-      for(int x = 0; x < 3; x++){
-	msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0);
-	printf("%s\n", buf.mtext);
+      void *tree = 0;
+      struct messy *mt = 0;
+      struct messy *retval = 0;
+      msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0);
+      mt = makeMess(buf.mtype, buf.mtext, buf.count);
+      printf("original %s\n", mt->mtext);
+      retval = tsearch(mt, &tree, messComp);
+      if(retval == 0){
+	printf("retval fail\n");
       }
+      else{
+	struct messy *re = 0;
+	re = *(struct messy **)retval;
+	if(re != mt){
+	  printf("found existing ok %u\n", j);
+	  freeMess(mt);
+	}
+	else{
+	  printf("insert ok %u\n", j);
+	}
+      }
+
       exit(EXIT_SUCCESS);
     }
   }
@@ -112,3 +136,37 @@ int main(int argc, char **argv){
 
   exit(EXIT_SUCCESS);
 }
+
+struct messy * makeMess(long type, char *mess, int count){
+  struct messy *temp = (struct messy *)calloc(sizeof(struct messy),1);
+  if (!temp){
+    printf("calloc fail\n");
+    exit(EXIT_FAILURE);
+  }
+  temp->mtype = type;
+  strcpy(temp->mtext, mess);
+  temp->count = count;
+  return temp;
+}
+
+void freeMess(void *mess){
+  struct messy *tmp = (struct messy*) &mess;
+  if(!tmp)
+    return;
+  free(tmp->mtype);
+  free(tmp->mtext);
+  free(tmp->count);
+  free(tmp);
+  return;
+}
+
+int messComp(const void *l, const void*r){
+  const struct messy *ml = l;
+  const struct messy *mr = r;
+  if(strcmp(ml->mtext, mr->mtext) > 0)
+    return 1;
+  if(strcmp(ml->mtext, mr->mtext) < 0)
+    return -1;
+  return 0;
+}
+
