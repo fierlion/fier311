@@ -37,7 +37,7 @@ int main(int argc, char **argv){
   char *line = NULL;
   size_t len = 0;
   ssize_t readIn = 0;
-  int numChilds = 3;
+  int numChilds;
   int numWordsIn = 0;
   const char delimiters[] = " \"[]{}.,;:!-/*()?!@#$%^&_=+1234567890\\<>";
   char *running;
@@ -60,6 +60,11 @@ int main(int argc, char **argv){
   }
 
   buf.mtype = 1;
+
+  if(strcmp(argv[1], "-n") == 0){
+    numChilds = atoi(argv[2]);
+  }
+  else numChilds = 1;
 
   //tokenize and put into mesQue
   while((readIn = getline(&line, &len, stdin)) != -1){
