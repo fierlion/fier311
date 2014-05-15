@@ -37,7 +37,7 @@ int main(int argc, char **argv){
   char *line = NULL;
   size_t len = 0;
   ssize_t readIn = 0;
-  int numChilds;
+  int numChilds = 0;
   int numWordsIn = 0;
   const char delimiters[] = " \"[]{}.,;:!-/*()?!@#$%^&_=+1234567890\\<>";
   char *running;
@@ -63,9 +63,9 @@ int main(int argc, char **argv){
 
   if(strcmp(argv[1], "-n") == 0){
     numChilds = atoi(argv[2]);
-  }
+    }
   else numChilds = 1;
-
+ 
   //tokenize and put into mesQue
   while((readIn = getline(&line, &len, stdin)) != -1){
     running = strdupa(line);                /* Make writable copy.  */
@@ -81,7 +81,7 @@ int main(int argc, char **argv){
 	memcpy(buf.mtext, token, toklen);
 	buf.count = 1;
 	numWordsIn += 1;
-	//       	printf("%s, %d\n", buf.mtext, buf.count);
+	//       printf("%s, %d\n", buf.mtext, buf.count);
 	if (msgsnd(msqid, &buf, toklen, 0) == -1)
 	  perror("msgsend");    
       }
@@ -116,7 +116,7 @@ int main(int argc, char **argv){
       for (int ja = 0; ja < (numWordsIn / numChilds); ja++){ 
 	msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0);
 	mt = makeMess(buf.mtype, buf.mtext, buf.count);
-	//	printf("original %s\n", mt->mtext);
+	//printf("original %s\n", mt->mtext);
 	retval = tsearch(mt, &tree, messComp);
 	if(retval == 0){
 	  printf("retval fail\n");
