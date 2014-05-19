@@ -63,7 +63,7 @@ int main(int argc, char **argv){
 
   if(strcmp(argv[1], "-n") == 0){
     numChilds = atoi(argv[2]);
-    }
+  }
   else numChilds = 1;
  
   //tokenize and put into mesQue

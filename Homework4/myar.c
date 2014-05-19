@@ -45,7 +45,6 @@ int main(int argc, char **argv){
   char *output = argv[2];
   struct ar_hdr* fileDeets = malloc(sizeof(struct ar_hdr));
   assert (fileDeets != 0);
-
   opterr = 0;                    //disable invalid options
   while ((c = getopt(argc, argv, "q:x:tvd:A")) != -1)
     switch(c){

@@ -1,27 +1,33 @@
-#Include <unistd.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 int main(int argc, char **argv){
   pid_t p;
+  pid_t child;
+  int status;
 
   switch((p = fork())){
   case 0:
-    //this is the child case only executed in child
-    printf("Child: My process ID is %d (%d)\n", getpid(), getppid());
+    //this is the child case
+    printf("Child: My processID is %d\n, my parent is %d\n", getpid(), getppid());
+    execlp("ls", "ls", "-t", "-l", (char*)NULL);
+
     break;
   case -1:
-    //this is the error case
-    perror("Could not creacte child");
+    perror("Could not create child");
     exit(EXIT_FAILURE);
   default:
-    //this is the parent case, parent code executed here
-    printf("Parent: My process ID is %d\n", getpid());
+    //parent case
+    printf("Parent: My processID is %d\n", getpid());
+    child = wait(&status);
+    printf("Wait on child %d\n", child);
     break;
   }
+  //both child and parent continue from here
+    printf("My processID is %d\n", getpid());
 
-  //both child and parent continue from here (come together)
-
-  return 0;
+  exit(EXIT_SUCCESS);
 }
