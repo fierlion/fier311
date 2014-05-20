@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <limits.h>
 
-#define BITARSZ 1    
-#define TOTBITS 32         // bitArr will hold (32 * BITARSZ) bits
+#define BITARSZ 500    
+#define TOTBITS 16000         // bitArr will hold (32 * BITARSZ) bits
 
-void setBit(int a[], int k){
+void setBit(long a[], int k){
   int i = k/32;
   int pos = k%32;
   int flag = 1;            // flag = 0000.....000001
@@ -14,7 +14,7 @@ void setBit(int a[], int k){
   a[i] = a[i] | flag;      // set the bit at the k-th position in a[i]
 }
 
-void clearBit(int a[], int k){
+void clearBit(long a[], int k){
   int i = k/32;
   int pos = k%32;
   int flag = 1;
@@ -23,7 +23,7 @@ void clearBit(int a[], int k){
   a[i] = a[i] & flag;      // REset the bit at k-th position in a[i]
 }
 
-int testBit(int a[], int k){
+int testBit(long a[], int k){
   int i = k/32;
   int pos = k%32;
   int flag = 1;
@@ -33,7 +33,7 @@ int testBit(int a[], int k){
   return 0;
 }
 
-void multiples(int *a, int base){
+void multiples(long *a, int base){
   for (int i = base + 1; i < TOTBITS; i++){
     if (i % base == 0){
       setBit(a, i);
@@ -42,11 +42,11 @@ void multiples(int *a, int base){
 }
 
 int main(int argc, char **argv){
-  int a[BITARSZ];               // bit array = bit 0 - (32 * BITARSZ)
+  long a[BITARSZ];               // bit array = bit 0 - (32 * BITARSZ)
   int i, j, k;
-  int children = 8;
+  int children = 10;
   int blocksize = TOTBITS / children;
-  //pid_t childpid;
+  pid_t childpid;
   
   for (i = 0; i < BITARSZ; i++){
     a[i]= 0;               //initialize bit array
@@ -54,25 +54,23 @@ int main(int argc, char **argv){
 
   printf("blocksize = %i\n", blocksize);
   for (i = 0; i < children; i++){
-    printf("NEW\n");
     for (j = (i * blocksize); j < ((i+1) * blocksize); j++){
       printf("%i\t", j);
     }
+      printf("---------------------\n");
   }
 
+  //  for (i = 2; i < TOTBITS; i++){
+  //  if (testBit(a, i) == 0){
+  //    multiples(a, i);
+  //  }
+  //}
 
-
-  for (i = 2; i < TOTBITS; i++){
-    if (testBit(a, i) == 0){
-      multiples(a, i);
-    }
-  }
-
-  for (i = 2; i < TOTBITS; i++){
-    if (testBit(a, i) == 0){
-	printf(" %d\t", i);
-    }
-  }
+  //for (i = 2; i < TOTBITS; i++){
+  //  if (testBit(a, i) == 0){
+  //	printf(" %d\t", i);
+  //  }
+  //}
   //  printf("\n%ui\n", UINT_MAX);
   printf("\n");
   return 0;
