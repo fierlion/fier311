@@ -43,7 +43,7 @@ void multiples(int *a, int base){
 
 int main(int argc, char **argv){
   int a[BITARSZ];               // bit array = bit 0 - (32 * BITARSZ)
-  int i;
+  int i, j, k;
   int children = 8;
   int blocksize = TOTBITS / children;
   //pid_t childpid;
@@ -53,6 +53,14 @@ int main(int argc, char **argv){
   }
 
   printf("blocksize = %i\n", blocksize);
+  for (i = 0; i < children; i++){
+    printf("NEW\n");
+    for (j = (i * blocksize); j < ((i+1) * blocksize); j++){
+      printf("%i\t", j);
+    }
+  }
+
+
 
   for (i = 2; i < TOTBITS; i++){
     if (testBit(a, i) == 0){
