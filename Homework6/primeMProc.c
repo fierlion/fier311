@@ -1,3 +1,8 @@
+//Ray Allan Foote
+//footer@onig.orst.edu
+//CS311_400
+//Assignment 6 (shared mem/forks)
+
 #define _BSD_SOURCE
 
 #include <getopt.h>
