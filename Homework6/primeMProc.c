@@ -1,5 +1,6 @@
 #define _BSD_SOURCE
 
+#include <getopt.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -65,63 +66,89 @@ void *mount_shmem(char *path, int object_size){
   return addr;
 }
 
-void multiples(unsigned int *a, int base, unsigned int tbits){
-  for (int i = base + 1; i < tbits; i++){
-    if (i % base == 0){
-      setBit(a, i);
+void multiples(unsigned int *array, unsigned int base, unsigned int total){
+  if ((base == 0) || (base == 1)){
+    return;
+  } else {
+    for (int i = base + 1; i < total; i++){
+      if (testBit(array, i) == 0){
+	if (i % base == 0){
+	  setBit(array, i);
+	}
+      }
     }
-  }  
+  }
 }
 
 int main(int argc, char **argv){
-  unsigned int totbits = 64;          //upto UINT_MAX
-  int children = 4;
+  int c;
+  int print = 1;
+  extern char *optarg;
+  extern int optind, optopt;
+  unsigned int totbits = UINT_MAX;          //upto UINT_MAX
+  int children = 1;
   unsigned int *bitArray;
   unsigned int size = ((totbits / 32)) + 1;
   int i, j;
-  int blocksize = totbits / children;
   int objectSize = 1024 * 1024 * 600;
-  //pid_t childpid;  
   void *addr = mount_shmem("/footerPrime", objectSize);
-  bitArray = malloc((sizeof(unsigned int)) * size); //allocate size of unsinged int x size
+  bitArray = malloc((sizeof(unsigned int)) * size);
   bitArray = (unsigned int*)addr;
 
+  //getopts for children/totbits/quiet
+  while ((c = getopt(argc, argv, "m:c:q")) != -1) {
+    switch (c){
+    case 'm':
+      totbits = atol(optarg);
+      break;
+    case 'c':
+      children = atoi(optarg);
+      break;
+    case 'q':
+      print = 0;
+      break;
+    }
+  }
+  //initialize bit array
   for (i = 0; i < size; i++){
-    bitArray[i]= 0;               //initialize bit array
+    bitArray[i]= 0;              
   }
 
-  for (i = 1; i <= children; i++){
+  for (i = 0; i < children; i++){
     switch (fork()) {
     case -1:
       printf("fork %i failed", i);
       exit(EXIT_FAILURE);
     case 0:
       //child case
-      printf("child %i\n", i);
-      for (j = (i*blocksize); j < ((i+1) * blocksize); j++){
-	if (testBit(bitArray, j) == 0){
+      for(j = 2; j < totbits; j++){
+	if (j % children == i){
 	  multiples(bitArray, j, totbits);
 	}
-	printf("%i ", j);
       }
-      printf("\n");
       exit(EXIT_SUCCESS);
     default:
       break;
     }
   }
-
   for (i = 0; i < children; i++){
     wait(NULL);
   }
-
-  for (i = 2; i < totbits; i++){
-    if (testBit(bitArray, i) == 0){
-      printf("%d\t", i);
+  if (print > 0){
+    for (i = 4; i < totbits; i++){
+      if ((testBit(bitArray, i - 2) == 0) && (testBit(bitArray, i) == 0)){
+	printf("%d, %d\n", i-2, i);
+      }
     }
   }
-  //  printf("\n%ui\n", UINT_MAX);
-  printf("\n");
-  return 0;
+  if(shm_unlink("/footerPrime") == -1)
+    printf("not unlinked\n");
+  exit(EXIT_SUCCESS);
 }
 
+//to divide ordered list into children n number blocks
+      //      for (j = (i*blocksize); j < ((i+1) * blocksize); j++){
+      //	unsigned int k = j - blocksize;
+	//printf("%i ", k);
+      //	multiples(bitArray, k, totbits);
+      //      }
