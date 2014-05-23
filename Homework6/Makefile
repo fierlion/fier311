@@ -4,21 +4,27 @@
 # Assignment 6 Makefile
 
 CC=gcc
-CFLAGS=$(DEBUG) -Wall -std=c99 -lrt
-OBJ = primeMProc
-PROGS= primeMProc
+CFLAGS= $(DEBUG) -Wall -std=c99
+LFLAG= -lrt
+PFLAG= -pthread
+OBJ= primeMProc primePThread
+PROGS= primeMProc primePThread
 
 all: $(PROGS)
 
 primeMProc: primeMProc.o
-	$(CC) $(CFLAGS) -o primeMProc primeMProc.o
+	$(CC) $(CFLAGS) $(LFLAG) -o primeMProc primeMProc.o
 
 primeMProc.o: primeMProc.c
-	$(CC) $(CFLAGS) -c primeMProc.c
+	$(CC) $(CFLAGS) $(LFLAG) -c primeMProc.c
 
-#tests as targets
-test:
+primePThread: primePThread.0
+	$(CC) $(CFLAGS) $(PFLAG) -o primePThread primePThread.o 
+
+primePThread.0: primePThread.c
+	$(CC) $(CFLAGS) $(PFLAG) -c primePThread.c
 
 clean:
 	rm -f $(PROGS) *.o *~
+	rm -f primeMTest.txt
 	bash clean.bash
