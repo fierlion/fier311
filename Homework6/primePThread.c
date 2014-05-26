@@ -21,7 +21,7 @@ static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 struct arg_struct {
   unsigned int *array;
   int numthred;
-  int thredin;
+  unsigned int thredin;
   unsigned int total;
 };
 
@@ -90,9 +90,10 @@ void * threadFunc(void *arguments){
 int main(int argc, char **argv){
   int c;
   int print = 1;
+  int status;
   extern char *optarg;
   extern int optind, optopt;
-  unsigned int totbits = 60;
+  unsigned int totbits = 1000;
   int numthred = 2;
   unsigned int *bitArray;
   unsigned int size = ((totbits / 32)) + 1;
@@ -128,17 +129,15 @@ int main(int argc, char **argv){
     args[i].numthred = numthred;
     args[i].thredin = i;
     args[i].total = totbits;
-    //    s = pthread_create(&thread[i], NULL, threadFunc, (void *)&args[i]);
-    //if (s != 0){
-    //  perror("thread create error");
-    //  exit(EXIT_FAILURE);
-    //}
-    printf("array args: %d, %d, %d, %d\n", args[i].array, args[i].numthred,
-	   args[i].thredin, args[i].total);
+    s = pthread_create(&thread[i], NULL, threadFunc, (void *)&args[i]);
+    if (s != 0){
+      perror("thread create error");
+      exit(EXIT_FAILURE);
+    }
   }
 
-  //  for (i = 0; i < numthred; i++)
-  //  pthread_join(thread[i], NULL);
+  for (i = 0; i < numthred; i++)
+    pthread_join(thread[i], (void*)&status);
 
   if (print > 0){
     for (i = 4; i < totbits; i++){
