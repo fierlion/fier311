@@ -16,9 +16,13 @@
 #include <unistd.h>
 #include <time.h>
 
-struct data{
-  unsigned long max;
-  int thread_id;
+static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+
+struct arg_struct {
+  unsigned int *array;
+  int numthred;
+  int thredin;
+  unsigned int total;
 };
 
 void setBit(unsigned int a[], int k){
@@ -62,14 +66,24 @@ void multiples(unsigned int *array, unsigned int base, unsigned int total){
   }
 }
 
-void *print_down(void *arg){
-  struct data *d = (struct data*)arg;
-  unsigned long max = d->max;  //because it's a pointer we use arrow rather than dot
-  int thread_id = d->thread_id;
-
-  for (long i = max; i>= 0; --i)
-    printf("Thread %d: %ld\n", thread_id, i); 
-
+void * threadFunc(void *arguments){
+  struct arg_struct *args = arguments;
+  int i, s;
+  for (i = 2; i < args->total; i++){
+    if (i % args->numthred == args->thredin){
+      s = pthread_mutex_lock(&mtx);
+      if (s != 0){
+	perror("mutex not locked");
+	exit(EXIT_FAILURE);
+      }
+      multiples(args->array, i, args->total);
+      s = pthread_mutex_unlock(&mtx);
+      if (s != 0){
+	perror("mutex not unlocked");
+	exit(EXIT_FAILURE);
+      }
+    }
+  }
   return NULL;
 }
 
@@ -78,11 +92,11 @@ int main(int argc, char **argv){
   int print = 1;
   extern char *optarg;
   extern int optind, optopt;
-  unsigned int totbits = UINT_MAX;
-  int numthred = 1;
+  unsigned int totbits = 60;
+  int numthred = 2;
   unsigned int *bitArray;
   unsigned int size = ((totbits / 32)) + 1;
-  int i, j;
+  int i;
   bitArray = malloc((sizeof(unsigned int)) * size);
  
  //getopts for numthred/totbits/quiet
@@ -105,25 +119,34 @@ int main(int argc, char **argv){
     bitArray[i] = 0;
   }
 
-  srand(time(NULL));
-  struct data d[10];
-  pthread_t thread[10];
+  //make and initialize threads
+    pthread_t thread[numthred];
+    struct arg_struct args[numthred];
+  for(i = 0; i < numthred; i++){
+    int s;
+    args[i].array = bitArray;
+    args[i].numthred = numthred;
+    args[i].thredin = i;
+    args[i].total = totbits;
+    //    s = pthread_create(&thread[i], NULL, threadFunc, (void *)&args[i]);
+    //if (s != 0){
+    //  perror("thread create error");
+    //  exit(EXIT_FAILURE);
+    //}
+    printf("array args: %d, %d, %d, %d\n", args[i].array, args[i].numthred,
+	   args[i].thredin, args[i].total);
+  }
 
-  for (int i = 0; i < 10; ++i){
-    d[i].max = rand() % 25;
-    printf("rand=%lui\n", d[i].max);
-    d[i].thread_id = i;
-    if(0 != pthread_create(&thread[i],
-			   NULL,
-			   print_down,
-			   (void*)&d[i])){
-      perror("can't create thread");
-      exit(EXIT_FAILURE);
+  //  for (i = 0; i < numthred; i++)
+  //  pthread_join(thread[i], NULL);
+
+  if (print > 0){
+    for (i = 4; i < totbits; i++){
+      if ((testBit(bitArray, i - 2) == 0) && (testBit(bitArray, i) == 0)){
+	printf("%d, %d\n", i-2, i);
+      }
     }
   }
 
-  for (int i = 0; i < 10; ++i)
-    pthread_join(thread[i], NULL);
-
-  return 0;
+  exit(EXIT_SUCCESS);
 }

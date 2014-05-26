@@ -150,3 +150,10 @@ int main(int argc, char **argv){
     printf("not unlinked\n");
   exit(EXIT_SUCCESS);
 }
+
+//to divide ordered list into children n number blocks
+      //      for (j = (i*blocksize); j < ((i+1) * blocksize); j++){
+      //	unsigned int k = j - blocksize;
+	//printf("%i ", k);
+      //	multiples(bitArray, k, totbits);
+      //      }
